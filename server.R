@@ -22,7 +22,7 @@ west.africa.points$cases <- rep(0,nrow(west.africa.points))
 west.africa.points$deaths <- rep(0,nrow(west.africa.points))
 
 # load the URL
-url <- 'http://en.wikipedia.org/wiki/2014_West_Africa_Ebola_outbreak'
+url <- 'http://en.wikipedia.org/wiki/Ebola_virus_epidemic_in_West_Africa'
 
 # source a helper function
 source('./helper.R')
@@ -53,15 +53,15 @@ shinyServer(
     in.data <- reactive({
       invalidateLater(1000*60*60*24, session)
       dat <- readHTMLTable(url)[[2]]
-      if (length(colnames(dat))<11) dat <- readHTMLTable(url)[[3]]
-      dat <- dat[2:nrow(dat),c(1, 4:11)]
+      if (length(colnames(dat))<11) dat <- readHTMLTable(url)[[5]]
+      dat <- dat[2:nrow(dat),c(1, 4:(ncol(dat)-1))]
       colnames(dat) <- c("Date", "Guinea.cases", "Guinea.deaths", "Liberia.cases", "Liberia.deaths",
-                         "Sierra.Leone.cases", "Sierra.Leone.deaths", "Nigeria.cases", "Nigeria.deaths")
+                         "Sierra.Leone.cases", "Sierra.Leone.deaths", "Nigeria.cases", "Nigeria.deaths", "Senegal.cases", "Senegal.deaths")
       dat$Date <- helper(dat$Date)
-      dat[,2:9] <- sapply(dat[,2:9], function(x) as.numeric(gsub(",","",x)))
+      dat[,2:ncol(dat)] <- sapply(dat[,2:ncol(dat)], function(x) as.numeric(gsub(",","",x)))
       dat <- arrange(dat, Date)
-      dat[1,2:9] <- sapply(dat[1,2:9], function(x) ifelse(is.na(x), 0, x))
-      for(i in 2:nrow(dat)){dat[i,2:9] <- ifelse(is.na(dat[i,2:9]), dat[i-1,2:9], dat[i,2:9])}
+      dat[1,2:ncol(dat)] <- sapply(dat[1,2:ncol(dat)], function(x) ifelse(is.na(x), 0, x))
+      for(i in 2:nrow(dat)){dat[i,2:ncol(dat)] <- ifelse(is.na(dat[i,2:ncol(dat)]), dat[i-1,2:ncol(dat)], dat[i,2:ncol(dat)])}
       dat
     })
     
@@ -73,13 +73,13 @@ shinyServer(
       for (i in 2:nrow(dat)){
         offset[i,] <- as.numeric(dat[i,1]-dat[i-1,1])
         new.cases[i,1] <- dat[i,1]
-        new.cases[i,2:9] <- ifelse(dat[i,2:9]-dat[i-1,2:9]>=0, dat[i,2:9]-dat[i-1,2:9], 0)
+        new.cases[i,2:ncol(dat)] <- ifelse(dat[i,2:ncol(dat)]-dat[i-1,2:ncol(dat)]>=0, dat[i,2:ncol(dat)]-dat[i-1,2:ncol(dat)], 0)
       } 
-      new.cases[2:nrow(new.cases), 2:9] <- new.cases[2:nrow(new.cases),2:9]/offset[2:nrow(new.cases),1]      
+      new.cases[2:nrow(new.cases), 2:ncol(dat)] <- new.cases[2:nrow(new.cases),2:ncol(dat)]/offset[2:nrow(new.cases),1]      
       newdat <- data.frame(Date=seq(from=1, to=as.numeric(as.Date(Sys.time())-as.Date("2014-03-21")), by=1)) 
       newdat <- join(newdat, new.cases, by="Date", match="first")
-      newdat[nrow(newdat), 2:9] <- sapply(newdat[nrow(newdat),2:9], function(x) ifelse(is.na(x), 0, x))
-      for (i in rev(2:(nrow(newdat)-1))){newdat[i,2:9] <- ifelse(is.na(newdat[i,2:9]), newdat[i+1,2:9], newdat[i,2:9])}
+      newdat[nrow(newdat), 2:ncol(dat)] <- sapply(newdat[nrow(newdat),2:ncol(dat)], function(x) ifelse(is.na(x), 0, x))
+      for (i in rev(2:(nrow(newdat)-1))){newdat[i,2:ncol(dat)] <- ifelse(is.na(newdat[i,2:ncol(dat)]), newdat[i+1,2:ncol(dat)], newdat[i,2:ncol(dat)])}
       new.cases <- newdat
       new.cases
     })
@@ -92,7 +92,7 @@ shinyServer(
       newdat <- join(newdat, dat, by="Date")
       for (i in 2:(nrow(new.cases))){
         newdat[i,1] <- new.cases[i,1]
-        newdat[i,2:9] <- ifelse(is.na(newdat[i,2:9]), newdat[i-1,2:9] + new.cases[i,2:9], newdat[i,2:9])
+        newdat[i,2:ncol(dat)] <- ifelse(is.na(newdat[i,2:ncol(dat)]), newdat[i-1,2:ncol(dat)] + new.cases[i,2:ncol(dat)], newdat[i,2:ncol(dat)])
       }
       cum.cases <- newdat[-nrow(newdat),]
       cum.cases
@@ -103,12 +103,12 @@ shinyServer(
       cum.cases <- melt(cum.cases(), id="Date")
       cum.cases$country <- as.factor(gsub(".(cases|deaths)", "", cum.cases$variable))
       cum.cases$country <- as.factor(gsub("Sierra.Leone", "Sierra Leone", cum.cases$country))
-      cum.cases$type <- as.factor(gsub("(Guinea|Nigeria|Liberia|Sierra.Leone).", "", cum.cases$variable))
+      cum.cases$type <- as.factor(gsub("(Guinea|Nigeria|Liberia|Sierra.Leone|Senegal).", "", cum.cases$variable))
       cum.cases$variable <- "cumulative"
       new.cases <- melt(new.cases(), id="Date")
       new.cases$country <- as.factor(gsub(".(cases|deaths)", "", new.cases$variable))
       new.cases$country <- as.factor(gsub("Sierra.Leone", "Sierra Leone", new.cases$country))
-      new.cases$type <- as.factor(gsub("(Guinea|Nigeria|Liberia|Sierra.Leone).", "", new.cases$variable))
+      new.cases$type <- as.factor(gsub("(Guinea|Nigeria|Liberia|Sierra.Leone|Senegal).", "", new.cases$variable))
       new.cases$variable <- "new"
       total.cases <- rbind(cum.cases, new.cases)
       total.cases$date <- total.cases$Date
@@ -148,7 +148,7 @@ shinyServer(
     
     output$cases.map <- renderPlot({
       cum.new.switch.temp <- cum.new.switch()
-      limits <- c(0,1100)
+      limits <- c(0,2000)
       if (cum.new.switch.temp=="new") {limits <- c(0,30)}
       ggplot(current.data(), aes(x = long, y = lat, group = group, fill=cases)) + 
         geom_polygon(size = 1) +  geom_path(color="dark green") + coord_equal() +
@@ -159,7 +159,7 @@ shinyServer(
     
     output$deaths.map <- renderPlot({
       cum.new.switch.temp <- cum.new.switch()
-      limits <- c(0,700)
+      limits <- c(0,1200)
       if (cum.new.switch.temp=="new") {limits <- c(0,30)}
       ggplot(current.data(), aes(x = long, y = lat, group = group, fill=deaths)) + 
         geom_polygon(size = 1) +  geom_path(color="dark green") + coord_equal() +

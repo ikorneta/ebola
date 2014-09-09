@@ -11,9 +11,10 @@ shinyUI(fluidPage(
   sidebarLayout(
     sidebarPanel(
       p("Visualise the 2014 West Africa Ebola outbreak."),
-      p("Data source:",a(href="https://en.wikipedia.org/wiki/2014_West_Africa_Ebola_outbreak", "Wikipedia")),
+      p("Data source:",a(href="https://en.wikipedia.org/wiki/Ebola_virus_epidemic_in_West_Africa", "Wikipedia")),
       p("Author: Iga Korneta"),
       p("Date: Aug 24, 2014"),
+      p("Code:", a(href="https://github.com/ikorneta/ebola", "Github")),
       p("Contact: iga.korneta@gmail.com"),
       br(),
       br(),
